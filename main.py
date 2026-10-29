@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import httpx
+import random
 
 app = FastAPI()
 
@@ -18,8 +19,25 @@ async def get_questions():
 
     data = response.json()
     questions = []
-    
+
+
+
     #q is short for question
     for q in data["results"]:
-        questions.append(q["question"])
+
+        incorrect_answers = q["incorrect_answers"] # Grabs incorrect answer from api
+        correct_answer = q["correct_answer"] # Grabs correct answer from api
+        complete_answers = incorrect_answers + [correct_answer] # Combines the two
+        random.shuffle(complete_answers) # Shuffles the answers
+
+        #Card dictionary
+        card = {
+            "question": q["question"],
+            "category": q["category"],
+            "difficulty": q["difficulty"],
+            "options": complete_answers,
+        }
+
+        questions.append(card)
+
     return questions
