@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-import httpx
-import random
-import html
+import httpx, random, html, uuid
+
 
 app = FastAPI()
+
+rounds = {}
 
 @app.get("/")
 def home():
@@ -20,8 +21,8 @@ async def get_questions():
 
     data = response.json()
     questions = []
-
-
+    round_id = str(uuid.uuid4())
+    answer_sheet = []
 
     #q is short for question
     for q in data["results"]:
@@ -31,11 +32,11 @@ async def get_questions():
         complete_answers = incorrect_answers + [correct_answer] # Combines the two
         random.shuffle(complete_answers) # Shuffles the answers
         clean_options = [] # Empty list to store answers for cleaning
+        answer_sheet.append(html.unescape(correct_answer))
 
         # Cleans answer of HTML bullshit ready for presentation
         for option in complete_answers:
             clean_options.append(html.unescape(option))
-            
 
         #Card dictionary
         card = {
@@ -47,4 +48,7 @@ async def get_questions():
 
         questions.append(card)
 
-    return questions
+    rounds[round_id] = answer_sheet
+
+    return {"round_id": round_id, "questions": questions}
+
