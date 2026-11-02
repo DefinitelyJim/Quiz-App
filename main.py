@@ -1,10 +1,15 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 import httpx, random, html, uuid
 
 
 app = FastAPI()
 
 rounds = {}
+
+class Answer(BaseModel):
+    question_number: int
+    choice: str
 
 @app.get("/")
 def home():
@@ -52,3 +57,9 @@ async def get_questions():
 
     return {"round_id": round_id, "questions": questions}
 
+@app.post("/rounds/{round_id}/answer")
+def check_answer(round_id: str, answer: Answer):
+    answer_sheet = rounds[round_id]
+    correct_answer = answer_sheet[answer.question_number]
+    is_correct = answer.choice == correct_answer
+    return{"correct": is_correct, "correct_answer": correct_answer}
