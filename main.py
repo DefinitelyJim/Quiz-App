@@ -2,10 +2,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import httpx, random, html, uuid
 
-
 app = FastAPI()
 
 rounds = {}
+
+#SETTINGS
+TIME_LIMIT = 10 #Seconds per questions
+MAX_POINTS = 100 #Points start at 100 and drop by 10 every second
+MIN_POINTS = 10 #Min points for correct answer
 
 class Answer(BaseModel):
     question_number: int
@@ -19,8 +23,8 @@ def home():
 def greeting(name):
     return {"message": f"Welcome {name} to the Quiz App!"}
 
-@app.get("/questions")
-async def get_questions():
+@app.post("/rounds")
+async def start_round():
     async with httpx.AsyncClient() as client:
         response = await client.get("https://opentdb.com/api.php?amount=3&type=multiple")
 
@@ -53,9 +57,17 @@ async def get_questions():
 
         questions.append(card)
 
-    rounds[round_id] = answer_sheet
+    rounds[round_id] = {
+        "questions": questions,
+        "answers": answer_sheet,
+        "started": {},
+        "answered": [],
+        "score": 0,
+    }
 
-    return {"round_id": round_id, "questions": questions}
+    return {"round_id": round_id, "total_questions": len(questions)}
+
+
 
 @app.post("/rounds/{round_id}/answer")
 def check_answer(round_id: str, answer: Answer):
