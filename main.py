@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import httpx, random, html, uuid
 
@@ -45,7 +45,7 @@ async def get_questions():
 
         #Card dictionary
         card = {
-            "question": html.unescape(q["question"]),
+            "question": html.unescape(q["question"]), #unescape is just cleaning up the html faff in each queastion and answer.
             "category": html.unescape(q["category"]),
             "difficulty": html.unescape(q["difficulty"]),
             "options": clean_options,
@@ -59,7 +59,23 @@ async def get_questions():
 
 @app.post("/rounds/{round_id}/answer")
 def check_answer(round_id: str, answer: Answer):
+
+    # Checks the round actually exists, if not, tells them where to go
+    if round_id not in rounds:
+        raise HTTPException(status_code=404, detail="Round not found")
+
+    # Grabs the answer sheet for this round
     answer_sheet = rounds[round_id]
+
+    # Stops dodgy question numbers, nothing below 0 or past the end of the sheet
+    if answer.question_number < 0 or answer.question_number >= len(answer_sheet):
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    # Looks up the right answer and checks it against what they picked
     correct_answer = answer_sheet[answer.question_number]
     is_correct = answer.choice == correct_answer
-    return{"correct": is_correct, "correct_answer": correct_answer}
+
+    # Sends back if they got it right, plus the actual answer
+    return {"correct": is_correct, "correct_answer": correct_answer}
+
+
